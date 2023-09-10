@@ -29,6 +29,7 @@ impl Type {
     }
 }
 
+//todo: добавить аргумент словарь в котором будет указана сложность для операторов
 fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
     let mut result: String = "".to_string();
     let mut equation: String = mask.clone().to_owned();
@@ -140,6 +141,7 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
     result.replace(";(", "|").replace("@", "|")
 }
 
+//todo: сделать преобразование *-... и тд в *(-...)
 fn equation_mask_gen(ops: Vec<&str>, parens: bool, len: usize) -> String {
     let mut last_elem: usize;
     let mut mask: String = "#".to_string();
