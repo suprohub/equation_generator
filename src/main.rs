@@ -4,12 +4,12 @@ use std::collections::HashMap;
 //op - operator
 
 fn main() {
-    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), -100, 100, false));
+    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), 100, false));
 }
 
 #[test]
 fn test() {
-    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), -100, 100, false));
+    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), 100, false));
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -37,7 +37,7 @@ impl Type {
 }
 
 //todo: добавить аргумент словарь в котором будет указана сложность для операторов
-fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
+fn equation_gen(mask: &str, max: i32, float: bool) -> String {
     let mut result: String = "".to_string();
     let mut equation: String = mask.split("~").collect::<Vec<_>>()[0].to_string();
     let mut num: Type;
@@ -46,21 +46,21 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
     let alphabet2 = (b'A'..=b'z')
         .map(|c| {
             if c.is_ascii_lowercase() {
-                (c as char, Type::Int(fastrand::i32(start..end)))
+                (c as char, Type::Int(fastrand::i32(0 - max .. 0)))
             } else {
-                (c as char, Type::Int(fastrand::i32(0..end)))
+                (c as char, Type::Int(fastrand::i32(0..max)))
             }
         })
         .filter(|c| c.0.is_alphabetic())
         .collect::<HashMap<_, _>>();
     let mut alphabet_up = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
         .chars()
-        .map(|c| (c as char, Type::Int(fastrand::i32(0..end))))
+        .map(|c| (c as char, Type::Int(fastrand::i32(0..max))))
         .collect::<HashMap<_, _>>();
 
     let mut alphabet = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
         .chars()
-        .map(|c| (c as char, Type::Int(fastrand::i32(start..end))))
+        .map(|c| (c as char, Type::Int(fastrand::i32(0 - max .. 0))))
         .collect::<HashMap<_, _>>();
 
     if float {
@@ -69,12 +69,12 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
                 if c.is_ascii_lowercase() {
                     (
                         c as char,
-                        Type::Float(fastrand::f32() * fastrand::i32(start..end) as f32),
+                        Type::Float(fastrand::f32() * fastrand::i32(0 - max .. 0) as f32),
                     )
                 } else {
                     (
                         c as char,
-                        Type::Float(fastrand::f32() * fastrand::i32(0..end) as f32),
+                        Type::Float(fastrand::f32() * fastrand::i32(0..max) as f32),
                     )
                 }
             })
@@ -85,7 +85,7 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
             .chars()
             .map(|c| (
                 c as char,
-                Type::Float(fastrand::f32() * fastrand::i32(0..end) as f32),
+                Type::Float(fastrand::f32() * fastrand::i32(0..max) as f32),
             ))
             .collect::<HashMap<_, _>>();
 
@@ -93,7 +93,7 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
             .chars()
             .map(|c|(
                 c as char,
-                Type::Float(fastrand::f32() * fastrand::i32(start..end) as f32),
+                Type::Float(fastrand::f32() * fastrand::i32(0 - max .. 0) as f32),
             ))
             .collect::<HashMap<_, _>>();
     }
@@ -147,10 +147,9 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
     result.push_str(" = ");
     result.push_str(&exmex::eval_str::<f64>(&equation.replace(";", "abs").replace("@", ")")).unwrap().to_string());
     println!("difficult: {}", difficult);
-    result.replace(";(", "|").replace("@", "|")
+    result.replace(";(", "|").replace("@", "|").replace("(x)", "x")
 }
 
-//todo: сделать преобразование *-... и тд в *(-...)
 fn equation_mask_gen(ops: HashMap<&str, usize>, parens: bool, len: usize) -> String {
     let mut mask: String = "#".to_string();
     let mut idx_count: usize = 0;
@@ -189,8 +188,15 @@ fn equation_mask_gen(ops: HashMap<&str, usize>, parens: bool, len: usize) -> Str
                 used_syms.push(alphabet_vec[idx_count].to_string().as_str().to_uppercase().chars().next().unwrap());
                 len_in_parens += 1;
             } else {
-                mask.push(alphabet_vec[idx_count]);
-                used_syms.push(alphabet_vec[idx_count]);
+                if fastrand::u8(0..100) > 50 {
+                    mask.push('(');
+                    mask.push(alphabet_vec[idx_count]);
+                    used_syms.push(alphabet_vec[idx_count]);
+                    mask.push(')');
+                } else {
+                    mask.push_str(&alphabet_vec[idx_count].to_string().as_str().to_uppercase());
+                    used_syms.push(alphabet_vec[idx_count].to_string().as_str().to_uppercase().chars().next().unwrap());
+                }
                 len_in_parens += 1;
             }
             idx_count += 1;
@@ -248,13 +254,17 @@ fn equation_mask_gen(ops: HashMap<&str, usize>, parens: bool, len: usize) -> Str
             }
             paren_list.pop();
         } else {
+            mask.push('(');
             mask.push(alphabet_vec[idx_count]);
+            mask.push(')');
             idx_count += 1;
             mask.push_str(ops_list[fastrand::usize(0..ops_len)]);
             if mask.chars().collect::<Vec<char>>()[mask.chars().count() - 1]  == '-' {
                 mask.push_str(&alphabet_vec[idx_count].to_string().as_str().to_uppercase());
             } else {
+                mask.push('(');
                 mask.push(alphabet_vec[idx_count]);
+                mask.push(')');
             }
             if paren_list.last().unwrap() == &0 {
                 mask.push(')')
