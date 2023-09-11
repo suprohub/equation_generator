@@ -1,8 +1,15 @@
 use exmex;
 use std::collections::HashMap;
 
+//op - operator
+
 fn main() {
-    println!("{}", equation_gen(equation_mask_gen(vec!["+", "-", "*", "/", "^"], true, 10).as_str(), -100, 100, false));
+    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), -100, 100, false));
+}
+
+#[test]
+fn test() {
+    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), -100, 100, false));
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -32,11 +39,11 @@ impl Type {
 //todo: добавить аргумент словарь в котором будет указана сложность для операторов
 fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
     let mut result: String = "".to_string();
-    let mut equation: String = mask.clone().to_owned();
+    let mut equation: String = mask.split("~").collect::<Vec<_>>()[0].to_string();
     let mut num: Type;
     let mut x: String = "".to_string();
 
-    let mut alphabet2 = (b'A'..=b'z')
+    let alphabet2 = (b'A'..=b'z')
         .map(|c| {
             if c.is_ascii_lowercase() {
                 (c as char, Type::Int(fastrand::i32(start..end)))
@@ -135,6 +142,8 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
             println!("{}\n\n\n\n\n", x);
         }
     }
+
+    difficult += mask.split("~").collect::<Vec<_>>()[1].parse::<usize>().unwrap();
     result.push_str(" = ");
     result.push_str(&exmex::eval_str::<f64>(&equation.replace(";", "abs").replace("@", ")")).unwrap().to_string());
     println!("difficult: {}", difficult);
@@ -142,8 +151,7 @@ fn equation_gen(mask: &str, start: i32, end: i32, float: bool) -> String {
 }
 
 //todo: сделать преобразование *-... и тд в *(-...)
-fn equation_mask_gen(ops: Vec<&str>, parens: bool, len: usize) -> String {
-    let mut last_elem: usize;
+fn equation_mask_gen(ops: HashMap<&str, usize>, parens: bool, len: usize) -> String {
     let mut mask: String = "#".to_string();
     let mut idx_count: usize = 0;
     let mut paren_list: Vec<usize> = Vec::new();
@@ -153,6 +161,9 @@ fn equation_mask_gen(ops: Vec<&str>, parens: bool, len: usize) -> String {
     let mut len_in_parens: usize = 0;
     let mut last_sym: char;
     let mut if_op: bool;
+    let ops_list = ops.keys().collect::<Vec<_>>();
+    let mut difficult: usize = 0;
+    let mut op: &&str;
 
     let alphabet_vec2: Vec<char> = (b'A'..=b'z')
     .map(|c| c as char)
@@ -193,9 +204,13 @@ fn equation_mask_gen(ops: Vec<&str>, parens: bool, len: usize) -> String {
                 }
                 len_in_parens = 1;
                 push_paren = false;
-                mask.push_str(ops[fastrand::usize(0..ops_len)]);
+                op = ops_list[fastrand::usize(0..ops_len)];
+                mask.push_str(&op);
+                difficult += ops.get(op).unwrap();
             } else {
-                mask.push_str(ops[fastrand::usize(0..ops_len)]);
+                op = ops_list[fastrand::usize(0..ops_len)];
+                mask.push_str(&op);
+                difficult += ops.get(op).unwrap();
                 len_in_parens += 1;
             }
         } else if !(last_sym == '(') && mask.len() > 1 {
@@ -221,9 +236,10 @@ fn equation_mask_gen(ops: Vec<&str>, parens: bool, len: usize) -> String {
  
     }
 
+    // Adds missing parens, ops, vars...
     for _ in 0..paren_list.len() {
         last_sym = mask.chars().collect::<Vec<char>>()[mask.chars().count() - 1];
-        if_op = !ops.contains(&last_sym.to_string().as_str());
+        if_op = !ops_list.contains(&&last_sym.to_string().as_str());
         if if_op && !(last_sym == '(' || last_sym == '$') {
             if paren_list.last().unwrap() == &0 {
                 mask.push(')')
@@ -234,7 +250,7 @@ fn equation_mask_gen(ops: Vec<&str>, parens: bool, len: usize) -> String {
         } else {
             mask.push(alphabet_vec[idx_count]);
             idx_count += 1;
-            mask.push_str(ops[fastrand::usize(0..ops_len)]);
+            mask.push_str(ops_list[fastrand::usize(0..ops_len)]);
             if mask.chars().collect::<Vec<char>>()[mask.chars().count() - 1]  == '-' {
                 mask.push_str(&alphabet_vec[idx_count].to_string().as_str().to_uppercase());
             } else {
@@ -249,10 +265,13 @@ fn equation_mask_gen(ops: Vec<&str>, parens: bool, len: usize) -> String {
             paren_list.pop();
         }
     }
+
+    // Adds a variable if the last character is an op
     last_sym = mask.chars().collect::<Vec<char>>()[mask.chars().count() - 1];
-    if ops.contains(&last_sym.to_string().as_str()) {
+    if ops_list.contains(&&last_sym.to_string().as_str()) { 
         mask.push_str(&alphabet_vec[idx_count].to_string().as_str().to_uppercase());
     };
     println!("{}", mask.replace(used_syms[fastrand::usize(0..used_syms.len() - 1)], "x").replace("$", "(").replace("#", ""));
+    mask.push_str(&format!("~{}", difficult));
     mask.replace(used_syms[fastrand::usize(0..used_syms.len() - 1)], "x").replace("$", "(").replace("#", "")
 }
