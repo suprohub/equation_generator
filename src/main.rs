@@ -4,7 +4,7 @@ use std::collections::HashMap;
 //op - operator
 
 fn main() {
-    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), 100, false));
+    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 120).as_str(), 100, false));
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn equation_gen(mask: &str, max: i32, float: bool) -> String {
                 Type::Float(fastrand::f32() * fastrand::i32(0 - max .. 0) as f32),
             ))
             .collect::<HashMap<_, _>>();
-    }
+        }
     alphabet.extend(alphabet_up);
     alphabet.extend(alphabet2);
 
@@ -169,7 +169,7 @@ fn equation_mask_gen(ops: HashMap<&str, usize>, parens: bool, len: usize) -> Str
     .filter(|c| c.is_alphabetic())
     .collect::<Vec<_>>();
 
-    let mut alphabet_vec: Vec<char> = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+    let mut alphabet_vec: Vec<char> = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
         .chars()
         .collect::<Vec<_>>();
 
