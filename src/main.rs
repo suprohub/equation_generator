@@ -4,7 +4,7 @@ use std::collections::HashMap;
 //op - operator
 
 fn main() {
-    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 120).as_str(), 100, false));
+    println!("{}", equation_gen(equation_mask_gen(HashMap::from([("+", 1), ("-", 2), ("*", 3), ("/", 4)]), true, 10).as_str(), 100, false));
 }
 
 #[test]
@@ -189,10 +189,15 @@ fn equation_mask_gen(ops: HashMap<&str, usize>, parens: bool, len: usize) -> Str
                 len_in_parens += 1;
             } else {
                 if fastrand::u8(0..100) > 50 {
-                    mask.push('(');
-                    mask.push(alphabet_vec[idx_count]);
-                    used_syms.push(alphabet_vec[idx_count]);
-                    mask.push(')');
+                    if last_sym != ')' && last_sym != '(' && last_sym != '$' && last_sym != '#' && last_sym != ';' { // сегодня переделаю в список
+                        mask.push('(');
+                        mask.push(alphabet_vec[idx_count]);
+                        used_syms.push(alphabet_vec[idx_count]);
+                        mask.push(')');
+                    } else {
+                        mask.push(alphabet_vec[idx_count]);
+                        used_syms.push(alphabet_vec[idx_count]);
+                    }
                 } else {
                     mask.push_str(&alphabet_vec[idx_count].to_string().as_str().to_uppercase());
                     used_syms.push(alphabet_vec[idx_count].to_string().as_str().to_uppercase().chars().next().unwrap());
